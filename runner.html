@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runner</title>
+    <style>
+        canvas {
+            background-color: black;
+            border: 1px solid white;
+        }
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100vh;
+            display: grid;
+            justify-content: center;
+            align-content: center;
+            background: black;
+        }
+    </style>
+</head>
+<body>
+    <canvas width="800" height="400"></canvas>
+</body>
+<script defer>
+    const canvas = document.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const GROUND = 350;
+
+    var spriteIndex = 0;
+
+    function randint(min, max) {
+        if (!max) {
+            max = min;
+            min = 0;
+        }
+        return min + Math.floor(Math.random()*(max-min));
+    }
+    class Runner {
+        constructor() {
+            this.pos = {x: 30, y: GROUND};
+            this.size = {w: 50, h: 60};
+            this.vel = {x: 0, y: 0};
+            this.g = 0.8;
+            this.state = 'stand';
+            this.img = new Image();
+            this.img.src = 'dino_stand_0.png';
+
+            this.sprites = {
+                stand: [
+                    'dino_stand_0.png',
+                    'dino_stand_1.png',
+                    'dino_stand_2.png'
+                ],
+                duck: [
+                    'dino_duck_1.png',
+                    'dino_duck_2.png',
+                    'dino_duck_1.png'
+                ]
+            }
+        }
+        show() {
+            spriteIndex += 0.2;
+            if (spriteIndex >= 2) spriteIndex = 0;
+
+            if (this.state == 'stand') {
+              this.img.src = `sprites/dino_stand_${Math.floor(spriteIndex)}.png`;  
+            }
+            else if (this.state == 'jump') {
+                this.img.src = 'sprites/dino_stand_2.png';
+            } 
+            else {
+                this.img.src = `sprites/dino_duck_${Math.floor(spriteIndex)}.png`;
+            }
+
+            ctx.drawImage(this.img, this.pos.x, this.pos.y, this.size.w, -this.size.h);
+            // ctx.fillRect(this.pos.x, this.pos.y, this.size.w, this.size.h);
+        }
+        update() { 
+            this.pos.y += this.vel.y;
+            this.vel.y += this.g;
+
+            this.pos.y = Math.min(this.pos.y, GROUND);
+            if (this.pos.y === GROUND && this.state === 'jump') this.state = 'stand';
+        }
+        jump() {
+            if (this.pos.y === GROUND) this.vel.y = -12;
+            this.stand();
+            this.state = 'jump';
+        }
+        duck() {
+            this.size.w = 60;
+            this.size.h = 35;
+            this.state = 'duck';
+        }
+        stand() {
+            this.size.w = 50;
+            this.size.h = 60;
+            this.state = 'stand';
+        }
+    }
+    class Cactus {
+        constructor(offset) {
+            this.pos = {x: offset, y: GROUND}
+            this.size = {w: randint(70, 80), h: randint(50, 60)}
+            this.img = new Image();
+            this.img.src = `sprites/cactus${randint(1, 5)}.png`;
+            console.log("new cactus");
+        }
+        show() {
+            ctx.drawImage(this.img, this.pos.x, this.pos.y, this.size.w, -this.size.h);
+        }
+        update() {
+            this.pos.x -= 6;
+        }
+    }
+    var dino = new Runner();
+    var obstacles = Array();
+
+    // adding getter last to obstacles
+    const last = arr => arr[arr.length-1];
+
+    // for (let i = 0; i < 2; i++) {
+        obstacles.push(new Cactus(canvas.width));
+    // }
+
+    // start game loop
+    function animate() {
+        var anime = requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        obstacles.forEach(obstacle => {
+            obstacle.update();
+            obstacle.show();
+
+        });
+        console.log(obstacles.length);
+        try {
+            console.log(obstacles.length);
+
+            if (obstacles[0].pos.x < -90) {
+                obstacles.shift();
+                obstacles.push(new Cactus(last(obstacles).pos.x+canvas.width));
+            }
+            console.log(obstacles);
+
+        }
+        catch{cancelAnimationFrame(anime)}
+
+        dino.show();
+        dino.update();
+    }
+
+    window.onkeydown = event => {
+        if (event.keyCode === 32 || event.keyCode === 38) {
+            dino.jump();
+        }
+        else if (event.keyCode === 40) dino.duck();
+    }
+    window.onkeyup = event => event.keyCode === 40 ? dino.stand() : false;
+    animate();
+</script>
+</html>
